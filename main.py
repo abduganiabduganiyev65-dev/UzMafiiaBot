@@ -7,7 +7,7 @@ import telebot
 from telebot import types
 
 # -------------------------------------------------------------
-# RENDER UCHUN VEB-SERVER (24/7 KEEP-ALIVE)
+# RENDER UCHUN VEB-SERVER
 # -------------------------------------------------------------
 web_app = Flask(name)
 
@@ -123,7 +123,7 @@ def show_roles(message):
     bot.reply_to(message, text, parse_mode="HTML")
 
 # -------------------------------------------------------------
-# MAFIA GAME LOGIC (GURUH ICHIDA)
+# MAFIA GAME LOGIC
 # -------------------------------------------------------------
 @bot.message_handler(commands=['newgame'])
 def new_game(message):
