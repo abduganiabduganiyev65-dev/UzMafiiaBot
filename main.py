@@ -1,8 +1,3 @@
-# =============================================================
-# Telegram Mafia Bot (24/7 Render.com Compatible)
-# Python 3.9+ | pyTelegramBotAPI & Flask
-# =============================================================
-
 import os
 import time
 import random
@@ -12,7 +7,7 @@ import telebot
 from telebot import types
 
 # -------------------------------------------------------------
-# RENDER UCHUN VEB-SERVER (PORT CHECK FIX)
+# RENDER UCHUN VEB-SERVER (24/7 KEEP-ALIVE)
 # -------------------------------------------------------------
 web_app = Flask(name)
 
@@ -24,27 +19,25 @@ def run_web_server():
     port = int(os.environ.get("PORT", 8080))
     web_app.run(host='0.0.0.0', port=port)
 
-# Veb-serverni orqa fonda (background thread) ishga tushirish
 threading.Thread(target=run_web_server, daemon=True).start()
 
 # -------------------------------------------------------------
 # BOT CONFIGURATION
 # -------------------------------------------------------------
-# Bot tokenini Render Environment Variables orqali yoki to'g'ridan-to'g'ri kiriting
-TOKEN = os.getenv("BOT_TOKEN", "BOT_TOKENINGIZNI_SHU_YERGA_QO_YING")
+TOKEN = os.getenv("BOT_TOKEN", "8244204287:AAGQrSjCnGAH-YGyi51dff2VTwbNytwE_vI")
 bot = telebot.TeleBot(TOKEN)
 
 # -------------------------------------------------------------
-# MA'LUMOTLAR BAZASI (Xotirada saqlash)
+# MA'LUMOTLAR BAZASI
 # -------------------------------------------------------------
-users_db = {}  # user_id: {"name": str, "coins": int, "games": int, "wins": int, "last_daily": float}
-games_db = {}  # chat_id: GameInstance
+users_db = {}
+games_db = {}
 
 def get_user(user_id, name="O'yinchi"):
     if user_id not in users_db:
         users_db[user_id] = {
             "name": name,
-            "coins": 500,  # Boshlang'ich tangalar
+            "coins": 500,
             "games": 0,
             "wins": 0,
             "last_daily": 0
@@ -56,10 +49,10 @@ def get_user(user_id, name="O'yinchi"):
 class GameInstance:
     def init(self, chat_id):
         self.chat_id = chat_id
-        self.state = "JOINING"  # JOINING, NIGHT, DAY, ENDED
-        self.players = {}  # user_id: {"name": str, "role": str, "alive": bool}
+        self.state = "JOINING"
+        self.players = {}
         self.night_actions = {"kill": None, "heal": None, "check": None}
-        self.votes = {}  # voter_id: voted_target_id
+        self.votes = {}
 
 # -------------------------------------------------------------
 # BUYRUQLAR (COMMANDS)
@@ -96,7 +89,7 @@ def daily_bonus(message):
     user = get_user(message.from_user.id, message.from_user.first_name)
     now = time.time()
     if now - user.get('last_daily', 0) >= 86400:
-      reward = random.randint(150, 350)
+        reward = random.randint(150, 350)
         user['coins'] += reward
         user['last_daily'] = now
         bot.reply_to(message, f"🎁 Bugungi kunlik bonusingiz: <b>+{reward} 🪙</b> tanga berildi!", parse_mode="HTML")
@@ -188,7 +181,7 @@ def handle_game_registration(call):
         bot.answer_callback_query(call.id, "Siz o'yinga qo'shildingiz! 🎉")
         
         player_names = "\n".join([f"• {p['name']}" for p in game.players.values()])
-      markup = types.InlineKeyboardMarkup()
+        markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("➕ O'yinga qo'shilish", callback_data=f"join_{chat_id}"))
         markup.add(types.InlineKeyboardButton("🚀 O'yinni boshlash", callback_data=f"startgame_{chat_id}"))
         
@@ -218,7 +211,6 @@ def distribute_roles_and_start_night(game):
     player_ids = list(game.players.keys())
     random.shuffle(player_ids)
 
-    # Rollarni ajratish
     roles_pool = ["Mafia", "Doctor", "Detective"]
     while len(roles_pool) < len(player_ids):
         roles_pool.append("Villager")
@@ -288,7 +280,7 @@ def handle_night_action(call):
         return
 
     if role == "Mafia":
-      game.night_actions["kill"] = target_id
+        game.night_actions["kill"] = target_id
         bot.answer_callback_query(call.id, "O'ldirish uchun nishon tanlandi! 🔴")
     elif role == "Doctor":
         game.night_actions["heal"] = target_id
@@ -300,8 +292,7 @@ def handle_night_action(call):
         bot.answer_callback_query(call.id, f"Tekshiruv natijasi: {is_mafia}", show_alert=True)
 
     bot.edit_message_text("✅ Tanlovingiz qabul qilindi!", chat_id=call.message.chat.id, message_id=call.message.message_id)
-
-def process_night_results(game):
+    def process_night_results(game):
     if game.state != "NIGHT":
         return
     
@@ -383,7 +374,8 @@ def process_vote_results(game):
                 f"Uning roli: <b>{ex_role}</b> edi.",
                 parse_mode="HTML"
             )
-          game.votes = {}
+
+    game.votes = {}
     game.night_actions = {"kill": None, "heal": None, "check": None}
 
     if not check_game_over(game):
