@@ -12,9 +12,12 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardBu
 # --- ASOSIY SOZLAMALAR ---
 BOT_TOKEN = "8902585083:AAE0reQEDoaolOyhySA1kwi0K27SA9PZxWU"
 ADMIN_ID = 8661312143
+ADMIN_USERNAME = "@vipcgm"
+CHANNEL_USERNAME = "@AutoXabarchiNew"
+CHANNEL_URL = "https://t.me/AutoXabarchiNew"
+BOT_USERNAME = "@AutoXabarchiNewBot"
 CARD_NUMBER = "9860 1466 4986 4312"
 CARD_NAME = "N.X"
-BOT_USERNAME = "@AutoXabarchiNewBot"
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
@@ -31,6 +34,7 @@ def init_db():
             interval_sec REAL DEFAULT 300.0,
             auto_status INTEGER DEFAULT 0,
             msg_text TEXT DEFAULT 'Salom! Bu avto-xabar.',
+            msg_photo TEXT DEFAULT NULL,
             groups TEXT DEFAULT '',
             autoreply_status INTEGER DEFAULT 0,
             autoreply_text TEXT DEFAULT 'Salom! Hozir bandman, tez orada javob beraman.',
@@ -46,22 +50,23 @@ init_db()
 def get_user(user_id):
     conn = sqlite3.connect("autoxabar.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT is_vip, interval_sec, auto_status, msg_text, groups, autoreply_status, autoreply_text, total_sent FROM users WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT is_vip, interval_sec, auto_status, msg_text, msg_photo, groups, autoreply_status, autoreply_text, total_sent FROM users WHERE user_id = ?", (user_id,))
     res = cursor.fetchone()
     if not res:
         cursor.execute("INSERT INTO users (user_id) VALUES (?)", (user_id,))
         conn.commit()
-        res = (0, 300.0, 0, 'Salom! Bu avto-xabar.', '', 0, 'Salom! Hozir bandman, tez orada javob beraman.', 0)
+        res = (0, 300.0, 0, 'Salom! Bu avto-xabar.', None, '', 0, 'Salom! Hozir bandman, tez orada javob beraman.', 0)
     conn.close()
     return {
         "is_vip": res[0],
         "interval": res[1],
         "status": res[2],
         "text": res[3],
-        "groups": [g.strip() for g in res[4].split(",") if g.strip()],
-        "autoreply_status": res[5],
-        "autoreply_text": res[6],
-        "total_sent": res[7]
+        "photo": res[4],
+        "groups": [g.strip() for g in res[5].split(",") if g.strip()],
+        "autoreply_status": res[6],
+        "autoreply_text": res[7],
+        "total_sent": res[8]
     }
 
 def update_user(user_id, **kwargs):
@@ -72,6 +77,23 @@ def update_user(user_id, **kwargs):
     conn.commit()
     conn.close()
 
+# --- MAJBURIY OBUNANI TEKSHIRISH ---
+async def check_sub(user_id: int) -> bool:
+    try:
+        member = await bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user_id)
+        if member.status in ["member", "administrator", "creator"]:
+            return True
+    except Exception:
+        pass
+    return False
+
+def sub_keyboard():
+    kb = [
+        [InlineKeyboardButton(text="📢 Kanalga obuna bo'lish", url=CHANNEL_URL)],
+        [InlineKeyboardButton(text="✅ Obunani tekshirish", callback_data="check_subscription")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=kb)
+
 # --- FSM HOLATLAR ---
 class Form(StatesGroup):
     waiting_for_text = State()
@@ -80,7 +102,7 @@ class Form(StatesGroup):
     waiting_for_receipt = State()
     waiting_for_autoreply = State()
 
-# --- TUGMALAR ---
+# --- ASOSIY TUGMALAR ---
 def main_keyboard():
     kb = [
         [KeyboardButton(text="⚡️ Boshqaruv paneli")],
@@ -103,15 +125,24 @@ def control_panel_inline(user_id):
         [InlineKeyboardButton(text="🔄 Autoreply", callback_data="set_autoreply")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=kb)
-    # --- START XABARI ---
+
+# --- START & OBUNA TEKSHIRUV ---
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
+    if not await check_sub(message.from_user.id):
+        await message.answer(
+            f"⚠️ Botdan foydalanish uchun avval kanalimizga obuna bo'ling!\n\nKanal: {CHANNEL_URL}",
+            reply_markup=sub_keyboard(),
+            parse_mode="Markdown"
+        )
+        return
+
     u = get_user(message.from_user.id)
     vip_str = "💎 Pro (VIP)" if u["is_vip"] else "💙 Bepul"
     status_str = "🟢 Yoqilgan" if u["status"] else "❌ O'chiq"
     
     text = (
-        f"🤖 Avtorassylka / Auto-Broadcaster Botiga Xush Kelibsiz!\n\n"
+        f"🤖 Avtorassylka Botiga Xush Kelibsiz!\n\n"
         f"🌌 Auto Habar: {status_str}\n"
         f"⭐️ Sizning Tarifingiz: {vip_str}\n"
         f"⏱ Interval: {u['interval']} soniya\n"
@@ -120,9 +151,21 @@ async def start_cmd(message: types.Message):
     )
     await message.answer(text, reply_markup=main_keyboard(), parse_mode="Markdown")
 
+@dp.callback_query(F.data == "check_subscription")
+async def check_sub_cb(call: types.CallbackQuery):
+    if await check_sub(call.from_user.id):
+        await call.message.delete()
+        await call.message.answer("✅ Obuna tasdiqlandi! Endi botdan to'liq foydalanishingiz mumkin /start")
+    else:
+        await call.answer("❌ Siz hali kanalga obuna bo'lmadingiz!", show_alert=True)
+
 # --- BOSHQARUV PANEL ---
 @dp.message(F.text == "⚡️ Boshqaruv paneli")
 async def control_panel_msg(message: types.Message):
+    if not await check_sub(message.from_user.id):
+        await message.answer(f"⚠️ Avval kanalimizga obuna bo'ling: {CHANNEL_URL}", reply_markup=sub_keyboard())
+        return
+    
     u = get_user(message.from_user.id)
     vip_str = "💎 Pro (VIP)" if u["is_vip"] else "💙 Bepul"
     status_str = "🟢 Yoqilgan" if u["status"] else "❌ O'chiq"
@@ -133,7 +176,6 @@ async def control_panel_msg(message: types.Message):
         f"🌌 Auto Habar: {status_str}\n"
         f"⭐️ Sizning Tarifingiz: {vip_str}\n"
         f"⏱ Interval: {u['interval']} soniya\n"
-        f"💬 Joriy matn: {u['text']}\n"
         f"👥 Guruhlar soni: {len(u['groups'])} ta"
     )
     await message.answer(text, reply_markup=control_panel_inline(message.from_user.id), parse_mode="Markdown")
@@ -153,16 +195,24 @@ async def toggle_auto_send(call: types.CallbackQuery):
     await call.answer(f"Autohabar yuborish {st_text}", show_alert=True)
     await call.message.edit_reply_markup(reply_markup=control_panel_inline(call.from_user.id))
 
-# --- SET TEXT ---
+# --- SET TEXT & PHOTO ---
 @dp.callback_query(F.data == "set_text")
 async def ask_text(call: types.CallbackQuery, state: FSMContext):
-    await call.message.answer("📝 Guruhlarga yuboriladigan yangi xabar matnini kiriting:")
+    await call.message.answer("📝 Guruhlarga yuboriladigan xabarni yuboring:\n*(Matn yoki Rasm + matn ko'rinishida yuborishingiz mumkin)*")
     await state.set_state(Form.waiting_for_text)
     await call.answer()
 
-@dp.message(Form.waiting_for_text)
-async def save_text(message: types.Message, state: FSMContext):
-    update_user(message.from_user.id, msg_text=message.text)
+@dp.message(Form.waiting_for_text, F.photo)
+async def save_photo_text(message: types.Message, state: FSMContext):
+    photo_id = message.photo[-1].file_id
+    caption = message.caption if message.caption else ""
+    update_user(message.from_user.id, msg_text=caption, msg_photo=photo_id)
+    await message.answer("✅ Rasm va matn muvaffaqiyatli saqlandi!")
+    await state.clear()
+
+@dp.message(Form.waiting_for_text, F.text)
+async def save_only_text(message: types.Message, state: FSMContext):
+    update_user(message.from_user.id, msg_text=message.text, msg_photo=None)
     await message.answer("✅ Xabar matni saqlandi!")
     await state.clear()
 
@@ -192,7 +242,8 @@ async def save_interval(message: types.Message, state: FSMContext):
         await state.clear()
     except ValueError:
         await message.answer("⚠️ Faqat raqam kiriting (masalan: 10 yoki 0.5).")
-        # --- SET GROUPS ---
+
+# --- SET GROUPS ---
 @dp.callback_query(F.data == "set_groups")
 async def ask_groups(call: types.CallbackQuery, state: FSMContext):
     u = get_user(call.from_user.id)
@@ -200,8 +251,8 @@ async def ask_groups(call: types.CallbackQuery, state: FSMContext):
     await call.message.answer(
         f"👥 Joriy guruhlar:\n{current_groups}\n\n"
         f"➕ Yangi guruh ID yoki linklarini vergul bilan ajratib kiriting:\n"
-        f"*(Masalan: @guruh1, -100123456789, @guruh2)*\n\n"
-        f"⚠️ Muhim: Bot ushbu guruhlarda a'zo bo'lishi va xabar yozish huquqiga ega bo'lishi kerak!",
+        f"*(Masalan: -100123456789, @guruhname)*\n\n"
+        f"⚠️ Bot guruhlarda admin bo'lishi shart!",
         parse_mode="Markdown"
     )
     await state.set_state(Form.waiting_for_groups)
@@ -218,7 +269,7 @@ async def save_groups(message: types.Message, state: FSMContext):
 async def autoreply_menu(call: types.CallbackQuery, state: FSMContext):
     u = get_user(call.from_user.id)
     st = "🟢 Yoqilgan" if u["autoreply_status"] else "❌ O'chiq"
-    await call.message.answer(f"🔄 Autoreply sozlamalari\nStatus: {st}\nJoriy javob matni: {u['autoreply_text']}\n\nYangi Avto-javob matnini kiriting:")
+    await call.message.answer(f"🔄 Autoreply sozlamalari\nStatus: {st}\nJoriy javob: {u['autoreply_text']}\n\nYangi Avto-javob matnini kiriting:")
     await state.set_state(Form.waiting_for_autoreply)
     await call.answer()
 
@@ -227,8 +278,7 @@ async def save_autoreply(message: types.Message, state: FSMContext):
     update_user(message.from_user.id, autoreply_text=message.text, autoreply_status=1)
     await message.answer("✅ Autoreply matni saqlandi va yoqildi!")
     await state.clear()
-
-# --- PRO TARIF (VIP SOTIB OLISH) ---
+    # --- PRO TARIF (VIP SOTIB OLISH) ---
 @dp.message(F.text == "👑 Pro tarif")
 async def pro_tariff_msg(message: types.Message):
     u = get_user(message.from_user.id)
@@ -239,9 +289,8 @@ async def pro_tariff_msg(message: types.Message):
         f"Sizning statusingiz: {vip_status}\n\n"
         f"🚀 VIP Avzalliklari:\n"
         f"• ⚡️ 0.1 soniya minimal interval\n"
-        f"• 🔕 Xabar ostidagi {BOT_USERNAME} reklamasi yoʻqotiladi!\n"
-        f"• ♾ Cheksiz guruhlarga avto-yuborish\n"
-        f"• 📈 Yuqori tezlik va prioriteti bor server\n\n"
+        f"• 🔕 Xabar ostidagi {BOT_USERNAME} reklamasi olib tashlanadi!\n"
+        f"• ♾ Cheksiz guruhlarga avto-yuborish\n\n"
         f"💳 To'lov uchun karta: {CARD_NUMBER}\n"
         f"👤 Egasining ismi: {CARD_NAME}\n"
         f"💵 Narxi: 35,000 so'm / oyiga\n\n"
@@ -264,7 +313,6 @@ async def receive_receipt(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     username = f"@{message.from_user.username}" if message.from_user.username else f"ID: {user_id}"
     
-    # Adminga yuborish
     admin_kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ VIP Berish", callback_data=f"grant_vip:{user_id}"),
          InlineKeyboardButton(text="❌ Rad etish", callback_data=f"reject_vip:{user_id}")]
@@ -273,24 +321,23 @@ async def receive_receipt(message: types.Message, state: FSMContext):
     await bot.send_photo(
         chat_id=ADMIN_ID,
         photo=photo_id,
-        caption=f"💳 Yangi to'lov cheki keldi!\nFoydalanuvchi: {username}\nID: {user_id}",
+        caption=f"💳 Yangi to'lov cheki!\nFoydalanuvchi: {username}\nID: {user_id}",
         reply_markup=admin_kb,
         parse_mode="Markdown"
     )
     
-    await message.answer("✅ Chek admin tekshiruviga yuborildi! VIP status tasdiqlangach sizga xabar beriladi.")
+    await message.answer("✅ Chek adminga yuborildi! Tasdiqlangach xabar keladi.")
     await state.clear()
-    # --- ADMIN VERIFICATION HANDLER ---
+
 @dp.callback_query(F.data.startswith("grant_vip:"))
 async def grant_vip_callback(call: types.CallbackQuery):
     if call.from_user.id != ADMIN_ID:
         return
     target_user_id = int(call.data.split(":")[1])
     update_user(target_user_id, is_vip=1)
-    
     await call.message.edit_caption(caption=call.message.caption + "\n\n✅ VIP STATUS BERILDI!")
     try:
-        await bot.send_message(target_user_id, "🎉 Tabriklaymiz! Sizga VIP Status berildi.\nEndi xabarlaringiz tagida reklama chiqmaydi va 0.1s interval qo'yishingiz mumkin!")
+        await bot.send_message(target_user_id, "🎉 Tabriklaymiz! Sizga VIP Status berildi.")
     except Exception:
         pass
     await call.answer("VIP berildi!")
@@ -302,24 +349,21 @@ async def reject_vip_callback(call: types.CallbackQuery):
     target_user_id = int(call.data.split(":")[1])
     await call.message.edit_caption(caption=call.message.caption + "\n\n❌ TO'LOV RAD ETILDI.")
     try:
-        await bot.send_message(target_user_id, "❌ Siz yuborgan to'lov cheki admin tomonidan rad etildi.")
+        await bot.send_message(target_user_id, "❌ To'lov chekingiz rad etildi.")
     except Exception:
         pass
     await call.answer("Rad etildi!")
 
-# --- BOSHQA MENYU TUGMALARI ---
-@dp.message(F.text == "👤 Profillar")
-@dp.message(F.text == "👤 Kabinet")
+# --- BOSHQA MENYULAR ---
+@dp.message(F.text.in_({"👤 Profillar", "👤 Kabinet"}))
 async def profile_msg(message: types.Message):
     u = get_user(message.from_user.id)
     vip_str = "💎 Pro (VIP)" if u["is_vip"] else "💙 Bepul"
     text = (
-        f"👤 Foydalanuvchi Kabineti\n\n"
+        f"👤 Kabinet\n\n"
         f"🆔 ID: {message.from_user.id}\n"
-        f"👤 Ism: {message.from_user.full_name}\n"
         f"⭐️ Tarif: {vip_str}\n"
-        f"📊 Jami yuborilgan xabarlar: {u['total_sent']} ta\n"
-        f"⏱ Interval: {u['interval']}s"
+        f"📊 Jami yuborilgan: {u['total_sent']} ta"
     )
     await message.answer(text, parse_mode="Markdown")
 
@@ -329,68 +373,68 @@ async def settings_msg(message: types.Message):
 
 @dp.message(F.text == "🗓 Kalendar")
 async def calendar_msg(message: types.Message):
-    await message.answer("🗓 Kalendar Rejalashtirgich:\nAvto-rasilka 24/7 rejimida uzluksiz ishlaydi. Alohida vaqt jadvalini belgilash VIP foydalanuvchilar uchun avtomatik faol.")
-
-@dp.message(F.text == "🔧 Foydali funksiyalar")
+    await message.answer("🗓 Kalendar: Avto-rasilka 24/7 rejimida uzluksiz ishlaydi.")
+    @dp.message(F.text == "🔧 Foydali funksiyalar")
 async def tools_msg(message: types.Message):
-    await message.answer("🔧 Foydali funksiyalar:\n• Avto-javob beruvchi (Autoreply)\n• Multi-guruh yuborish\n• Anti-Flood Wait himoyasi")
+    await message.answer("🔧 Funksiyalar: Autoreply va Multi-guruh yuborish faol.")
 
 @dp.message(F.text == "📊 Statistika")
 async def stats_msg(message: types.Message):
     u = get_user(message.from_user.id)
-    await message.answer(f"📊 Statistika:\nSizning jami yuborgan xabarlaringiz: {u['total_sent']} ta\nUlangan guruhlar: {len(u['groups'])} ta")
+    await message.answer(f"📊 Statistika:\nYuborilganlar: {u['total_sent']} ta\nGuruhlar: {len(u['groups'])} ta")
 
-@dp.message(F.text == "❓ Yordam")
-@dp.message(F.text == "📖 Qo'llanma")
+@dp.message(F.text.in_({"❓ Yordam", "📖 Qo'llanma"}))
 async def help_msg(message: types.Message):
     text = (
-        f"📖 Botdan foydalanish qo'llanmasi:\n\n"
-        f"1. Botni xabar yubormoqchi bo'lgan guruhlaringizga qo'shing va adminga aylantiring (yoki yozish huquqini bering).\n"
-        f"2. ⚡️ Boshqaruv paneli -> 👥 Guruhlarni sozlash bo'limiga kirib guruh linki yoki ID sini kiriting.\n"
-        f"3. 💬 Habar matni tugmasi orqali reklamangizni kiriting.\n"
-        f"4. 🔮 Autohabar yuborish tugmasini bosib botni ishga tushiring.\n\n"
-        f"👨‍💻 Admin: @id{ADMIN_ID}"
+        f"📖 Qo'llanma:\n"
+        f"1. Guruhlarga botni admin qiling.\n"
+        f"2. Boshqaruv panelidan guruh va xabar matnini kiriting.\n"
+        f"3. Autohabarni yoqing.\n\n"
+        f"👨‍💻 Admin: {ADMIN_USERNAME}"
     )
     await message.answer(text, parse_mode="Markdown")
 
-# --- AVTO XABAR YUBORISH SYSTEM (BACKGROUND ENGINE) ---
+# --- AVTO XABAR YUBORISH LOOP ---
 async def auto_broadcaster_loop():
     while True:
         await asyncio.sleep(1)
         conn = sqlite3.connect("autoxabar.db")
         cursor = conn.cursor()
-        cursor.execute("SELECT user_id, is_vip, interval_sec, msg_text, groups, total_sent, last_sent_time FROM users WHERE auto_status = 1")
+        cursor.execute("SELECT user_id, is_vip, interval_sec, msg_text, msg_photo, groups, total_sent, last_sent_time FROM users WHERE auto_status = 1")
         active_users = cursor.fetchall()
         conn.close()
 
         now = time.time()
-        for u_id, is_vip, interval, msg_text, groups_str, total_sent, last_sent in active_users:
+        for u_id, is_vip, interval, msg_text, msg_photo, groups_str, total_sent, last_sent in active_users:
             if now - last_sent >= interval:
                 groups = [g.strip() for g in groups_str.split(",") if g.strip()]
                 if not groups:
                     continue
                 
-                # --- REKLAMA SUFFIX (VIP uchun yo'qotiladi) ---
+                # Reklama imzosi
                 if is_vip:
                     final_text = msg_text
                 else:
-                    final_text = f"{msg_text}\n\n📢 {BOT_USERNAME} orqali yuborildi"
+                    final_text = f"{msg_text}\n\n📢 {BOT_USERNAME} orqali yuborildi" if msg_text else f"📢 {BOT_USERNAME} orqali yuborildi"
                 
                 sent_count = 0
                 for group in groups:
                     try:
-                        await bot.send_message(chat_id=group, text=final_text)
+                        if msg_photo:
+                            await bot.send_photo(chat_id=group, photo=msg_photo, caption=final_text)
+                        else:
+                            await bot.send_message(chat_id=group, text=final_text)
                         sent_count += 1
                         await asyncio.sleep(0.05)
                     except Exception as e:
-                        logging.error(f"Guruhga yuborishda xatolik ({group}): {e}")
+                        logging.error(f"Xatolik ({group}): {e}")
                 
                 update_user(u_id, last_sent_time=now, total_sent=total_sent + sent_count)
 
-# --- BOTNI ISHGA TUSHIRISH ---
 async def main():
     asyncio.create_task(auto_broadcaster_loop())
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
+    
