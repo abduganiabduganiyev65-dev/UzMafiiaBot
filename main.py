@@ -179,6 +179,9 @@ async def pro_tarif_msg(message: types.Message):
     @dp.message(F.text == "⚙️ Sozlamalar")
 async def settings_msg(message: types.Message):
     u = get_user(message.from_user.id)
+@dp.message(F.text == "⚙️ Sozlamalar")
+async def settings_msg(message: types.Message):
+    u = get_user(message.from_user.id)
     await message.answer("⚙️ Boshqaruv Paneli Sozlamalari:", reply_markup=get_control_panel_markup(u), parse_mode="Markdown")
 
 @dp.message(F.text == "🗓 Kalendar")
