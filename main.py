@@ -366,18 +366,13 @@ async def profile_msg(message: types.Message):
         f"📊 Jami yuborilgan: {u['total_sent']} ta"
     )
     await message.answer(text, parse_mode="Markdown")
-
-@dp.message(F.text == "⚙️ Sozlamalar")
-async def settings_msg(message: types.Message):
-    await control_panel_msg(message)
-
-@dp.message(F.text == "🗓 Kalendar")
+    @dp.message(F.text == "🗓 Kalendar")
 async def calendar_msg(message: types.Message):
     await message.answer("🗓 Kalendar: Avto-rasilka 24/7 rejimida uzluksiz ishlaydi.")
-    @dp.message(F.text == "🔧 Foydali funksiyalar")
+
+@dp.message(F.text == "🔧 Foydali funksiyalar")
 async def tools_msg(message: types.Message):
     await message.answer("🔧 Funksiyalar: Autoreply va Multi-guruh yuborish faol.")
-
 @dp.message(F.text == "📊 Statistika")
 async def stats_msg(message: types.Message):
     u = get_user(message.from_user.id)
