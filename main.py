@@ -127,8 +127,18 @@ async def check_user_subscription(user_id: int) -> bool:
             return True
     except Exception as e:
         logging.warning(f"Obuna tekshirishda xatolik: {e}")
-    return False
-    def get_sub_keyboard():
+   
+
+# ==========================================
+# 4. FSM HOLATLAR (FORMAS)
+# ==========================================
+class UserStates(StatesGroup):
+    waiting_for_text = State()
+    waiting_for_interval = State()
+    waiting_for_groups = State()
+    waiting_for_receipt = State()
+    waiting_for_autoreply = State()
+def get_sub_keyboard():
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -144,19 +154,6 @@ async def check_user_subscription(user_id: int) -> bool:
             ],
         ]
     )
-
-
-# ==========================================
-# 4. FSM HOLATLAR (FORMAS)
-# ==========================================
-class UserStates(StatesGroup):
-    waiting_for_text = State()
-    waiting_for_interval = State()
-    waiting_for_groups = State()
-    waiting_for_receipt = State()
-    waiting_for_autoreply = State()
-
-
 # ==========================================
 # 5. MENYU VA TUGMALAR STRUKTURASI
 # ==========================================
