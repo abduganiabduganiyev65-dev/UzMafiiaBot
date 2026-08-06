@@ -454,15 +454,22 @@ async def show_pro_tariff(message: types.Message):
         ]
     )
     await message.answer(text, reply_markup=kb, parse_mode="Markdown")
-    @dp.callback_query(F.data == "send_receipt_now")
-async def callback_ask_receipt(call: types.CallbackQuery, state: FSMContext):
-    await call.message.answer(
-        "📸 Iltimos, to'lov chekining rasmini (skrinshotini) yuboring:"
+def get_sub_keyboard():
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="📢 Kanalga obuna bo'lish", url=CHANNEL_URL
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="✅ Obunani tekshirish",
+                    callback_data="check_subscription_now",
+                )
+            ],
+        ]
     )
-    await state.set_state(UserStates.waiting_for_receipt)
-    await call.answer()
-
-
 @dp.message(UserStates.waiting_for_receipt, F.photo)
 async def process_receive_receipt(message: types.Message, state: FSMContext):
     photo_id = message.photo[-1].file_id
