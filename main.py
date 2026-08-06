@@ -541,7 +541,7 @@ async def callback_reject_vip(call: types.CallbackQuery):
     except Exception:
         pass
     await call.answer("Rad etildi!")
-    @dp.message(F.text.in_({"👤 Profillar", "👤 Kabinet"}))
+@dp.message(F.text.in_({"👤 Profillar", "👤 Kabinet"}))
 async def show_profile_info(message: types.Message):
     u = get_user_db(message.from_user.id)
     vip_str = "💎 Pro (VIP)" if u["is_vip"] else "💙 Bepul"
