@@ -585,7 +585,7 @@ async def show_stats_info(message: types.Message):
     await message.answer(
         f"📊 Statistika:\nYuborilganlar: {u['total_sent']} ta\nGuruhlar: {len(u['groups'])} ta"
     )
-    @dp.message(F.text.in_({"❓ Yordam", "📖 Qo'llanma"}))
+@dp.message(F.text.in_({"❓ Yordam", "📖 Qo'llanma"}))
 async def show_help_info(message: types.Message):
     text = (
         f"📖 To'liq Qo'llanma:\n\n"
