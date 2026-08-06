@@ -601,9 +601,9 @@ async def show_help_info(message: types.Message):
         f"👨‍💻 Muammo bo'lsa admin: {ADMIN_USERNAME}"
     )
     await message.answer(text, parse_mode="Markdown")
-# ==========================================
+# ==================================================
 # 10. 24/7 AVTO-RASILKA VA GURUH KONTROLI LOOP
-# ==========================================
+# ==================================================
 async def auto_broadcaster_loop():
     while True:
         await asyncio.sleep(0.1)
@@ -612,10 +612,9 @@ async def auto_broadcaster_loop():
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT user_id, is_vip, interval_sec, msg_text, msg_photo, 
-                       groups, total_sent, last_sent_time 
+                SELECT user_id, is_vip, interval_sec, msg_text, msg_photo, groups, total_sent, last_sent_time
                 FROM users WHERE auto_status = 1
-            """
+                """
             )
             active_users = cursor.fetchall()
             conn.close()
@@ -631,7 +630,7 @@ async def auto_broadcaster_loop():
                 total_sent,
                 last_sent,
             ) in active_users:
-if now - last_sent >= interval:
+                if now - last_sent >= interval:
                     groups = [
                         g.strip() for g in groups_str.split(",") if g.strip()
                     ]
@@ -654,26 +653,28 @@ if now - last_sent >= interval:
                                 )
                             else:
                                 await bot.send_message(
-                                    chat_id=group, text=final_text
+                                    chat_id=group,
+                                    text=final_text,
                                 )
                             sent_count += 1
-                            await asyncio.sleep(0.05)
-                        except Exception as e:
-                            logging.error(f"Xatolik guruhda ({group}): {e}")
+                        except Exception:
+                            pass
 
-                    update_user_db(
-                        u_id,
-                        last_sent_time=now,
-                        total_sent=total_sent + sent_count,
+                    conn = sqlite3.connect("autoxabar_bot.db")
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "UPDATE users SET total_sent = total_sent + ?, last_sent_time = ? WHERE user_id = ?",
+                        (sent_count, now, u_id),
                     )
-        except Exception as e:
-            logging.error(f"Broadcaster siklida xatolik: {e}")
-            await asyncio.sleep(2)
+                    conn.commit()
+                    conn.close()
+        except Exception:
+            pass
 
 
-# ==========================================
-# 11. ASOSIY ISHGA TUSHIRISH (MAIN)
-# ==========================================
+# ==================================================
+# 11. MAIN
+# ==================================================
 async def main():
     asyncio.create_task(auto_broadcaster_loop())
     await dp.start_polling(bot)
