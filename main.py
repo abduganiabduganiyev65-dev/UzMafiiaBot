@@ -631,16 +631,18 @@ async def auto_broadcaster_loop():
                 total_sent,
                 last_sent,
             ) in active_users:
-                if now - last_sent >= interval:
+if now - last_sent >= interval:
                     groups = [
                         g.strip() for g in groups_str.split(",") if g.strip()
                     ]
                     if not groups:
                         continue
-                        if msg_text:
+
+                    if msg_text:
                         final_text = f"{msg_text}\n\n📢 @AutoXabarchiNewBot orqali yuborildi"
                     else:
                         final_text = "📢 @AutoXabarchiNewBot orqali yuborildi"
+
                     sent_count = 0
                     for group in groups:
                         try:
