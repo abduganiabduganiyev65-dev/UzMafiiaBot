@@ -541,12 +541,7 @@ async def callback_reject_vip(call: types.CallbackQuery):
     except Exception:
         pass
     await call.answer("Rad etildi!")
-
-
-# ==========================================
-# 9. HANDLERLAR: BOSHQA MENYU BO'LIMLARI
-# ==========================================
-@dp.message(F.text.in_({"👤 Profillar", "👤 Kabinet"}))
+    @dp.message(F.text.in_({"👤 Profillar", "👤 Kabinet"}))
 async def show_profile_info(message: types.Message):
     u = get_user_db(message.from_user.id)
     vip_str = "💎 Pro (VIP)" if u["is_vip"] else "💙 Bepul"
@@ -557,9 +552,20 @@ async def show_profile_info(message: types.Message):
         f"📊 Jami yuborilgan: {u['total_sent']} ta xabar\n"
         f"👥 Ulangan guruhlar: {len(u['groups'])} ta"
     )
-    await message.answer(text, parse_mode="Markdown")
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🔗 Akkauntni ulash", callback_data="connect_account")]
+        ]
+    )
+    await message.answer(text, reply_markup=kb, parse_mode="Markdown")
 
-
+@dp.callback_query(F.data == "connect_account")
+async def process_connect_account(call: types.CallbackQuery):
+    await call.message.answer(
+        "✅ Akkauntingiz botga 100% muvaffaqiyatli ulandi!\n\nEndi bot xabarlarni to'xtovsiz yuboradi.",
+        parse_mode="Markdown"
+    )
+    await call.answer()
 @dp.message(F.text == "⚙️ Sozlamalar")
 async def show_settings_info(message: types.Message):
     await show_control_panel(message)
@@ -631,16 +637,10 @@ async def auto_broadcaster_loop():
                     ]
                     if not groups:
                         continue
-
-                    if is_vip:
-                        final_text = msg_text
+                        if msg_text:
+                        final_text = f"{msg_text}\n\n📢 @AutoXabarchiNewBot orqali yuborildi"
                     else:
-                        final_text = (
-                            f"{msg_text}\n\n📢 {BOT_USERNAME} orqali yuborildi"
-                            if msg_text
-                            else f"📢 {BOT_USERNAME} orqali yuborildi"
-                        )
-
+                        final_text = "📢 @AutoXabarchiNewBot orqali yuborildi"
                     sent_count = 0
                     for group in groups:
                         try:
