@@ -277,6 +277,8 @@ async def run_broadcast(uid, status_msg):
             
             random.shuffle(dialogs)
             for chat_id in dialogs:
+                if stop_flags.get(uid):
+                    break
                 try:
                     if uid in user_ads:
                         ad = user_ads[uid]
@@ -289,9 +291,6 @@ async def run_broadcast(uid, status_msg):
                     
                     sent_count += 1
                     msg_counters[uid] += 1
-                    
-                    if sent_count % 5 == 0:
-                        bot.edit_message_text(f"⏳ Yuborildi: {sent_count}", uid, status_msg.id)
                     await asyncio.sleep(interval)
                 except Exception:
                     continue
