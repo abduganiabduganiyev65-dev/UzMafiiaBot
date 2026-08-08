@@ -402,5 +402,5 @@ def show_user_stats(m):
         f"📨 Jami tarqatilgan xabarlar: {db.get('total_messages', 0)}"
     )
 
-if name == "main":
+if __name__ == "__main__":
     bot.infinity_polling()
