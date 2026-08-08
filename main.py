@@ -277,8 +277,7 @@ async def run_broadcast(uid, status_msg):
             
             random.shuffle(dialogs)
             for chat_id in dialogs:
-     try:
-                    # Bu yerda teg qilish (active_mentions) kodi yo'q, xato bermaydi
+                    try:
                     if uid in user_ads:
                         ad = user_ads[uid]
                         if ad["type"] == "photo":
