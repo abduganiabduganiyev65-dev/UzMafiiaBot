@@ -1,2 +1,4 @@
-aiogram
-aiohttp
+pytelebotapi
+pyrogram
+tgcrypto
+flask
