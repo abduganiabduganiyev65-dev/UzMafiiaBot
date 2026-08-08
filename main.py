@@ -277,17 +277,25 @@ async def run_broadcast(uid, status_msg):
             
             random.shuffle(dialogs)
             for chat_id in dialogs:
-                if stop_flags.get(uid):
-                    break
-                try:
-                                    active_mentions = ""
-                                    active_mentions += f"@{message.from_user.username} "
-                                else:
-                                    active_mentions += f"[{message.from_user.first_name}](tg://user?id={message.from_user.id}) "
-                    except Exception:
-                        pass
-
-                    if uid in user_autoreply and active_mentions:
+     try:
+                    # Bu yerda teg qilish (active_mentions) kodi yo'q, xato bermaydi
+                    if uid in user_ads:
+                        ad = user_ads[uid]
+                        if ad["type"] == "photo":
+                            await cl.send_photo(chat_id, ad["file_id"], caption=ad["caption"])
+                        elif ad["type"] == "text":
+                            await cl.send_message(chat_id, ad["text"])
+                        elif ad["type"] == "forward":
+                            await cl.forward_messages(chat_id, ad["from_chat_id"], ad["message_id"])
+                    
+                    sent_count += 1
+                    msg_counters[uid] += 1
+                    
+                    if sent_count % 5 == 0:
+                        bot.edit_message_text(f"⏳ Yuborildi: {sent_count}", uid, status_msg.id)
+                    await asyncio.sleep(interval)
+                except Exception:
+                    continue
                         ar = user_autoreply[uid]
                         full_text = f"{active_mentions}\n\n{ar.get('caption', ar.get('text', ''))}"
                         if ar["type"] == "photo":
