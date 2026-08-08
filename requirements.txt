@@ -1,4 +1,4 @@
-pytelebotapi
+pyTelegramBotAPI
 pyrogram
 tgcrypto
 flask
