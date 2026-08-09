@@ -187,7 +187,7 @@ def start_advertising_process(m):
     uid = m.from_user.id
     if not is_logged_in(uid): return bot.send_message(uid, "❌ Akkaunt ulanmagan!")
     if uid not in user_ads: return bot.send_message(uid, "❌ Reklama sozlanmagan!")
-        stop_flags[uid] = False
+    stop_flags[uid] = False
     interval = user_intervals.get(uid, 10)
     limit = group_limits.get(uid, 500)
     status_msg = bot.send_message(uid, "📡 Tayyorlanmoqda...")
