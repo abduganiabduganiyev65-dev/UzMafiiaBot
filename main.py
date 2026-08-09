@@ -319,5 +319,5 @@ def delete_session(m):
 def show_user_stats(m):
     bot.send_message(m.chat.id, f"📊 Userlar: {len(db['users'])}\n📱 Akkauntlar: {len([f for f in os.listdir() if f.endswith('.session')])}")
 
-if __name__ == "__main__":
+if __name__ == "__main_":
     bot.infinity_polling()
