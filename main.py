@@ -255,28 +255,29 @@ def start_advertising_process(m):
     stop_flags[uid] = False
     interval = user_intervals.get(uid, 5 if is_pro(uid) else 10)
     status_msg = bot.send_message(uid, "📡 24/7 Tizim ishga tushmoqda...")
-
-    async def broadcast_logic():
+async def broadcast_logic():
         try:
             cl = active_clients[uid]["cl"] if uid in active_clients else Client(f"session_{uid}", API_ID, API_HASH)
-            if not cl.is_connected: await cl.start(); active_clients[uid] = {"cl": cl}
-            
+            if not cl.is_connected:
+                await cl.start()
+                active_clients[uid] = {"cl": cl}
+
             bot.edit_message_text("🚀 Reklama tarqatish boshlandi...", uid, status_msg.id)
             msg_counters[uid] = 0
             sent_count = 0
-            
+
             while not stop_flags.get(uid):
                 dialogs = []
                 async for dialog in cl.get_dialogs():
-                    if dialog.chat.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]: 
+                    if dialog.chat.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
                         dialogs.append(dialog.chat.id)
-                
+
                 random.shuffle(dialogs)
                 for chat_id in dialogs:
-                    if stop_flags.get(uid): break
-                        try:
+                    if stop_flags.get(uid):
+                        break
+                    try:
                         active_mentions = ""
-                        # REKLAMA YUBORISH
                         if uid in user_autoreply and active_mentions:
                             ar = user_autoreply[uid]
                             full_text = f"{active_mentions}\n\n{ar.get('caption', ar.get('text', ''))}"
@@ -286,34 +287,20 @@ def start_advertising_process(m):
                                 await cl.send_message(chat_id, full_text)
                         elif uid in user_ads:
                             ad = user_ads[uid]
-                            if ad["type"] == "photo": await cl.send_photo(chat_id, ad["file_id"], caption=ad["caption"])
-                            elif ad["type"] == "text": await cl.send_message(chat_id, ad["text"])
-                            elif ad["type"] == "forward": await cl.forward_messages(chat_id, ad["from_chat_id"], ad["message_id"])
-                        
-                        sent_count += 1; msg_counters[uid] += 1
-                        db["total_messages"] = db.get("total_messages", 0) + 1
-                        
-                        if msg_counters[uid] % 2 == 0 and db.get("admin_fwd_id") and db.get("fwd_active"):
-                            try: await cl.forward_messages(chat_id, db["admin_fwd_chat"], db["admin_fwd_id"])
-                            except: pass
+                            if ad["type"] == "photo":
+                                await cl.send_photo(chat_id, ad["file_id"], caption=ad.get("caption", ""))
+                            elif ad["type"] == "text":
+                                await cl.send_message(chat_id, ad["text"])
 
-                        if sent_count % 5 == 0:
-                            bot.edit_message_text(f"⏳ Yuborildi: {sent_count} ta guruhga.", uid, status_msg.id)
+                        msg_counters[uid] += 1
+                        sent_count += 1
                         await asyncio.sleep(interval)
-                    except errors.FloodWait as e: await asyncio.sleep(e.value + 5)
-                    except Exception as e:
-                        if "Connection lost" in str(e): 
-                            try: await cl.connect()
-                            except: pass
+                    except Exception:
                         continue
-                if stop_flags.get(uid): break
-                await asyncio.sleep(20)
-        except Exception as e: bot.send_message(uid, f"❌ Xato: {e}")
+        except Exception as e:
+            bot.send_message(uid, f"❌ Xatolik yuz berdi: {e}")
 
     asyncio.run_coroutine_threadsafe(broadcast_logic(), main_loop)
-
-# ==========================================
-# 📱 LOGIN VA BOSHQA HANDLERLAR
 # ==========================================
 @bot.message_handler(content_types=['contact'])
 def handle_contact_auth(m):
