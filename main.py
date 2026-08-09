@@ -275,17 +275,7 @@ def start_advertising_process(m):
                 for chat_id in dialogs:
                     if stop_flags.get(uid): break
                         try:
-                        # AKTIV ODAMLARNI TEG QILISH MANTIG'I
                         active_mentions = ""
-                        try:
-                            async for message in cl.get_chat_history(chat_id, limit=7):
-                                if message.from_user and not message.from_user.is_bot:
-                                    if message.from_user.username:
-                                        active_mentions += f"@{message.from_user.username} "
-                                    else:
-                                        active_mentions += f"[{message.from_user.first_name}](tg://user?id={message.from_user.id}) "
-                        except Exception: pass
-
                         # REKLAMA YUBORISH
                         if uid in user_autoreply and active_mentions:
                             ar = user_autoreply[uid]
