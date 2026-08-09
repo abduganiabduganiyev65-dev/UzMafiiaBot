@@ -1,5 +1,8 @@
+import telebot
 import asyncio
 asyncio.set_event_loop(asyncio.new_event_loop())
+
+from telebot import types
 from pyrogram import Client, enums, errors
 import asyncio
 import os
