@@ -1,11 +1,3 @@
-# ==============================================================================
-# FULL PRODUCTION-READY 24/7 TELEGRAM KINO BOT
-# Stack: Aiogram 3, Aiosqlite, Aiohttp (Keep-Alive Server for Render)
-# Bot Token: 8798034167:AAHSY5h3gCQkQhboftc4CTvljW61lSxCKjA
-# Admin ID: 8405366288 (@Abdugani_177)
-# Mandatory Channel: @UzKinoFilmss
-# ==============================================================================
-
 import os
 import sys
 import asyncio
